@@ -33,12 +33,6 @@
 **/
 package com.hadoop.mapreduce;
 
-import com.hadoop.compression.fourmc.util.HadoopUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import org.apache.hadoop.conf.Configurable;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -46,22 +40,21 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.LineReader;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 
 
 /**
  * Reads line from a 4mc compressed text file.
  * Treats keys as offset in file and value as line.
  */
-public class FourMcLineRecordReader extends RecordReader<LongWritable, Text> {
+public class FourMcLineRecordReader implements RecordReader<LongWritable, Text> {
 
     public static final String MAX_LINE_LEN_CONF = "com.hadoop.mapreduce.fourmc.line.recordreader.max.line.length";
 
@@ -75,6 +68,11 @@ public class FourMcLineRecordReader extends RecordReader<LongWritable, Text> {
 
     private final LongWritable key = new LongWritable();
     private final Text value = new Text();
+
+    public FourMcLineRecordReader(InputSplit split, JobConf job,
+                                  Reporter reporter) throws IOException {
+        initialize(split, job, reporter);
+    }
 
     /**
      * Get the progress within the split.
@@ -100,23 +98,20 @@ public class FourMcLineRecordReader extends RecordReader<LongWritable, Text> {
     }
 
     @Override
-    public LongWritable getCurrentKey() throws IOException, InterruptedException {
+    public LongWritable createKey() {
         return key;
     }
 
     @Override
-    public Text getCurrentValue() throws IOException, InterruptedException {
+    public Text createValue() {
         return value;
     }
 
-
-    @Override
-    public void initialize(InputSplit genericSplit, TaskAttemptContext context) throws IOException, InterruptedException {
+    public void initialize(InputSplit genericSplit, JobConf job, Reporter reporter) throws IOException {
         FileSplit split = (FileSplit) genericSplit;
         start = split.getStart();
         end = start + split.getLength();
         final Path file = split.getPath();
-        Configuration job = HadoopUtils.getConfiguration(context);
         maxLineLen = job.getInt(MAX_LINE_LEN_CONF, Integer.MAX_VALUE);
 
         FileSystem fs = file.getFileSystem(job);
@@ -144,7 +139,7 @@ public class FourMcLineRecordReader extends RecordReader<LongWritable, Text> {
     }
 
     @Override
-    public boolean nextKeyValue() throws IOException, InterruptedException {
+    public boolean next(LongWritable key, Text value) throws IOException {
         // exactly same as EB one
         if (pos <= end) {
             key.set(pos);

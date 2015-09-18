@@ -35,23 +35,20 @@ package com.hadoop.mapreduce;
 
 import com.hadoop.compression.fourmc.FourMcBlockIndex;
 import com.hadoop.compression.fourmc.FourMcInputFormatUtil;
-import com.hadoop.compression.fourmc.util.HadoopUtils;
-import org.apache.hadoop.conf.Configuration;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 
@@ -88,20 +85,20 @@ public abstract class FourMcInputFormat<K, V> extends FileInputFormat<K, V> {
     };
 
     @Override
-    protected List<FileStatus> listStatus(JobContext job) throws IOException {
-        List<FileStatus> files = super.listStatus(job);
+    protected FileStatus[] listStatus(JobConf jobConf) throws IOException {
+        FileStatus[] files = super.listStatus(jobConf);
         List<FileStatus> results = new ArrayList<FileStatus>();
-        Configuration conf = HadoopUtils.getConfiguration(job);
-        boolean recursive = conf.getBoolean("mapred.input.dir.recursive", false);
-        Iterator<FileStatus> it = files.iterator();
-        while (it.hasNext()) {
-            FileStatus fileStatus = it.next();
-            FileSystem fs = fileStatus.getPath().getFileSystem(conf);
+        boolean recursive = jobConf.getBoolean("mapred.input.dir.recursive", false);
+        int filesCount = files.length;
+        int filesIterator = 0;
+        while ( filesIterator < filesCount) {
+            FileStatus fileStatus = files[filesIterator];
+            FileSystem fs = fileStatus.getPath().getFileSystem(jobConf);
             addInputPath(results, fs, fileStatus, recursive);
         }
-
         LOG.debug("Total 4mc input paths to process: " + results.size());
-        return results;
+        FileStatus[] resultsArray = new FileStatus[results.size()];
+        return results.toArray(resultsArray);
     }
 
     protected void addInputPath(List<FileStatus> results, FileSystem fs,
@@ -119,15 +116,14 @@ public abstract class FourMcInputFormat<K, V> extends FileInputFormat<K, V> {
     }
 
     @Override
-    protected boolean isSplitable(JobContext context, Path filename) {
+    protected boolean isSplitable(FileSystem fs, Path filename) {
         return true;
     }
 
     @Override
-    public List<InputSplit> getSplits(JobContext job) throws IOException {
-        Configuration conf = HadoopUtils.getConfiguration(job);
+    public InputSplit[] getSplits(JobConf jobConf, int numSplits) throws IOException {
 
-        List<InputSplit> defaultSplits = super.getSplits(job);
+        InputSplit[] defaultSplits = super.getSplits(jobConf, numSplits);
         List<InputSplit> result = new ArrayList<InputSplit>();
 
         Path prevFile = null;
@@ -137,7 +133,7 @@ public abstract class FourMcInputFormat<K, V> extends FileInputFormat<K, V> {
             // Load the index.
             FileSplit fileSplit = (FileSplit) genericSplit;
             Path file = fileSplit.getPath();
-            FileSystem fs = file.getFileSystem(conf);
+            FileSystem fs = file.getFileSystem(jobConf);
 
             FourMcBlockIndex index;
             if (file.equals(prevFile)) {
@@ -169,8 +165,10 @@ public abstract class FourMcInputFormat<K, V> extends FileInputFormat<K, V> {
             }
 
         }
-
-        return result;
+        InputSplit[] resultsArray = new InputSplit[result.size()];
+        return result.toArray(resultsArray);
     }
+
+
 }
 

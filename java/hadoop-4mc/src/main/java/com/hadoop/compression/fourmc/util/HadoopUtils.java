@@ -33,11 +33,11 @@
 **/
 package com.hadoop.compression.fourmc.util;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapred.JobContext;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.JobContext;
 
 
 /**
@@ -51,7 +51,8 @@ public class HadoopUtils {
   private static final String PACKAGE = "org.apache.hadoop.mapreduce";
 
   static {
-    boolean v2 = true;
+    // setting v2 = false, as making 4mc compatible with mr1
+    boolean v2 = false;
     try {
       // use the presence of JobContextImpl as a test for 2.x
       Class.forName("org.apache.hadoop.mapreduce.task.JobContextImpl");

@@ -35,9 +35,12 @@ package com.hadoop.mapreduce;
 
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.mapred.Reporter;
+
+import java.io.IOException;
 
 /**
  * Files are broken into lines. Either linefeed or carriage-return are used to signal end of line.
@@ -45,7 +48,8 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
  */
 public class FourMcTextInputFormat extends FourMcInputFormat {
     @Override
-    public RecordReader<LongWritable, Text> createRecordReader(InputSplit split, TaskAttemptContext taskAttempt) {
-        return new FourMcLineRecordReader();
+    public RecordReader<LongWritable, Text> getRecordReader(InputSplit split, JobConf job, Reporter reporter)
+      throws IOException {
+        return new FourMcLineRecordReader(split, job, reporter);
     }
 }
