@@ -33,9 +33,10 @@
 **/
 package com.hadoop.compression.fourmc;
 
-import java.io.File;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import java.io.File;
 
 public class FourMcNativeCodeLoader {
     private static final Log LOG = LogFactory.getLog(FourMcNativeCodeLoader.class);
@@ -44,7 +45,8 @@ public class FourMcNativeCodeLoader {
     static {
         try {
             //try to load the lib
-            System.loadLibrary("hadoop-4mc");
+            System.load("/usr/lib/hadoop/lib/native/libhadoop-4mc.so.1.1.0");
+            //System.loadLibrary("hadoop-4mc");
             nativeLibraryLoaded = true;
             LOG.info("Loaded native hadoop-4mc library");
         } catch (Throwable t) {
